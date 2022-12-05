@@ -1,0 +1,7 @@
+.vscode/
+.env/
+.tox/
+.flaskenv
+server/instance/
+
+__pycache__/
