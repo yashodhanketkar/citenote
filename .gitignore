@@ -5,3 +5,4 @@
 server/instance/
 
 __pycache__/
+config.json
