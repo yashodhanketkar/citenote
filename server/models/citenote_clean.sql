@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS manuscript_paper;
+DROP TABLE IF EXISTS citation;
+DROP TABLE IF EXISTS papers;
+DROP TABLE IF EXISTS manuscripts;
+DROP TABLE IF EXISTS users;
