@@ -6,3 +6,6 @@ server/instance/
 
 __pycache__/
 config.json
+
+_gen.py
+_red.py

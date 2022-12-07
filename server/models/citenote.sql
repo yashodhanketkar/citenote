@@ -1,5 +1,5 @@
 CREATE TABLE users(
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE,
     password VARCHAR(255),
     role VARCHAR(255)

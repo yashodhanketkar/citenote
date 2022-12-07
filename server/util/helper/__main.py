@@ -1,22 +1,15 @@
 import click
 import json
+import pickle
 import secrets
 
 import psycopg2
 import getpass
 
-from .database import get_db, close_db
+from ..database import get_db, close_db
 from flask import g
 from flask.cli import with_appcontext
 from werkzeug.security import check_password_hash, generate_password_hash
-
-
-def validate_superuser(user):
-    if user == config["pg_user"]:
-        password = getpass.getpass()
-        if password == config["pg_password"]:
-            return True
-    return False
 
 
 class bcolors:
@@ -37,6 +30,20 @@ class bcolors:
     @staticmethod
     def print_success(message=""):
         print(f"{bcolors.SUCCESS}{message}{bcolors.RESET}")
+
+
+def get_citenote_data(query):
+    with open(r"server/.citenote", "rb") as data_file:
+        _val = pickle.load(data_file)[query]
+    return _val
+
+
+def validate_superuser(user):
+    if user == config["pg_user"]:
+        password = getpass.getpass()
+        if password == config["pg_password"]:
+            return True
+    return False
 
 
 with open("config.json") as config_file:
