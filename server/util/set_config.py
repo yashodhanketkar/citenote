@@ -16,6 +16,9 @@ def configure():
     _instance_folder = Path(current_app.root_path).joinpath("instance")
     _config_file = Path(_instance_folder).joinpath("config.py")
 
+    # To maintain order of return message
+    current_app.config["JSON_SORT_KEYS"] = False
+
     def get_token():
         """
         Generates token for the flask app

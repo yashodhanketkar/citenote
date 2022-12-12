@@ -38,20 +38,6 @@ def register():
         return {"/": "login successful"}, 200
     return {"/": "login unsuccessful"}, 400
 
-    # try:
-    #     _check = users_register()
-    #     if not _check:
-    #         raise ValueError
-
-    #     return {"/": "registeration successful"}, 200
-
-    # except ValueError:
-    #     return {"/": "Bad request"}, 400
-
-    # except Exception as err:
-    #     print("Login failed due to: ", err)
-    #     return {"/": "Internal server error"}, 500
-
 
 @_users.route("/test")
 def testing_func():

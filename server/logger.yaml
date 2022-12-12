@@ -1,0 +1,22 @@
+---
+version: 1
+formatters:
+  default:
+    format: "[%(asctime)s] %(levelname)s in %(module)s:%(message)s"
+  file_format:
+    format: "%(asctime)s - %(levelname)-8s - %(module)-8s - %(message)s"
+handlers:
+  wsgi:
+    class: logging.StreamHandler
+    stream: ext://flask.logging.wsgi_errors_stream
+    formatter: default
+  file_handler:
+    class: logging.FileHandler
+    filename: "citenote.log"
+    formatter: file_format
+    level: WARN
+root:
+  handlers:
+  - wsgi
+  - file_handler
+  level: INFO
