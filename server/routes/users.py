@@ -1,7 +1,8 @@
 from flask import Blueprint, g
 
+
 from ..util.helper import connect_db
-from ..util.helper.__users import users_login, users_register
+from ..util.helper.helper_users import users_delete, users_login, users_logout, users_register, users_operations
 
 
 _users = Blueprint("users", __name__, url_prefix="/users")
@@ -22,21 +23,27 @@ def get_user():
 
 
 @_users.route("/login")
+@users_operations
 def login():
-    _check = users_login()
-
-    if _check:
-        return {"/": "login successful"}, 200
-    return {"/": "login unsuccessful"}, 400
+    return users_login, "login"
 
 
 @_users.route("/register")
+@users_operations
 def register():
-    _check = users_register()
+    return users_register, "register"
 
-    if _check:
-        return {"/": "login successful"}, 200
-    return {"/": "login unsuccessful"}, 400
+
+@_users.route("/delete")
+@users_operations
+def delete_user():
+    return users_delete, "delete user"
+
+
+@_users.route("/logout")
+@users_operations
+def logout():
+    return users_logout, "logout"
 
 
 @_users.route("/test")

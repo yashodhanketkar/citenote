@@ -17,11 +17,9 @@ def get_db():
             port=postgres["pg_port"],
             database=postgres["pg_database"],
         )
-    print("Connected to db")
     return g.db
 
 
 def close_db():
-    print("Disconnected from db")
     if g.db:
         g.db.close()

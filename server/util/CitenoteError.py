@@ -32,3 +32,10 @@ class UsernameNotInSession(CitenoteException):
 
     def __init__(self):
         super().__init__("UsernameNotInSession", "Username not present in session")
+
+
+class UsernameInSession(CitenoteException):
+    """Username not present in session"""
+
+    def __init__(self):
+        super().__init__("UsernameInSession", "Username is present in session")

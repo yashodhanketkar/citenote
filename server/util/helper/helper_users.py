@@ -3,7 +3,9 @@
 Provides operational functions to the users blueprint.
 """
 
+import functools
 import psycopg2
+from typing import Callable, Tuple
 from flask import g, request, session
 
 from server.util import CitenoteError
@@ -16,11 +18,11 @@ def validate_fields(field: str) -> str:
 
     Check weather query is provided by the user and returns the value of query.
 
-    Variables:
-        _val (any): stores the value from query
-
     Args:
         field (str): name of query string
+
+    Variables:
+        _val (any): stores the value from query
 
     Returns:
         _val (str): value of query in string format
@@ -63,6 +65,33 @@ def get_role() -> str:
     return "guest"
 
 
+def users_operations(ufunc: Callable) -> Tuple[dict, int]:
+    """User operations handler for user routes
+
+    This function provided output view to the user routes.
+
+    Args:
+        ufunct (Callable): Route functions name
+
+    Variables:
+        _check (Callable -> bool): Function assigend to the route, returns boolean value
+        name (str): Name of operation
+
+    Returns:
+        wrapper (tuple): Returns output (dict -> json) and status code
+
+    """
+
+    @functools.wraps(ufunc)
+    def wrapper() -> Tuple[dict, int]:
+        _check, name = ufunc()
+        if _check():
+            return {"/": f"{name} successful"}, 200
+        return {"/": f"{name} unsuccessful"}, 400
+
+    return wrapper
+
+
 def users_login() -> bool:
     """Adds the user to the session.
 
@@ -82,6 +111,7 @@ def users_login() -> bool:
         (bool): Returns true if no error occurs during the operation otherwise returns false.
 
     Raises:
+        UsernameInSession: If user is already logged in.
         UsernameError: If username not found in database.
         PasswordError: If provided password does not match with password in database.
 
@@ -90,6 +120,9 @@ def users_login() -> bool:
     errors = 0
 
     try:
+        if "username" in session:
+            raise CitenoteError.UsernameInSession
+
         username = validate_fields("username")
         password = validate_fields("password")
 
@@ -112,7 +145,10 @@ def users_login() -> bool:
         cursor.execute("select role from users where username= %s", (username,))
         role = cursor.fetchone()[0]
         cursor.close()
-        return _check
+
+    except CitenoteError.UsernameInSession as err:
+        errors += 1
+        bcolors.print_warning(err.message, err)
 
     except CitenoteError.PasswordError as err:
         errors += 1
@@ -130,9 +166,10 @@ def users_login() -> bool:
         if errors:
             return False
 
-        session.clear()
         session["username"] = username
         session["role"] = role
+        print(f"{username = } logged in session")
+        return True
 
 
 def users_register() -> bool:
@@ -193,6 +230,7 @@ def users_register() -> bool:
         if errors:
             return False
 
+        print(f"{username = } registered in database")
         return True
 
 
@@ -262,7 +300,9 @@ def users_delete() -> bool:
         if errors:
             return False
 
-    return True
+        session.clear()
+        print(f"{username = } deleted from database")
+        return True
 
 
 def users_logout() -> bool:
@@ -275,7 +315,8 @@ def users_logout() -> bool:
         (bool): Returns true if no error occurs during the operation otherwise returns false.
 
     Raises:
-        UsernameError: If username is not present in session
+        UsernameNotInSession: If username is not present in session.
+
     """
 
     errors = 0
@@ -284,6 +325,7 @@ def users_logout() -> bool:
         if "username" not in session:
             raise CitenoteError.UsernameNotInSession
 
+        username = session["username"]
         session.clear()
 
     except CitenoteError.UsernameNotInSession as err:
@@ -298,6 +340,7 @@ def users_logout() -> bool:
         if errors:
             return False
 
+        print(f"{username = } logged out from session")
         return True
 
 
