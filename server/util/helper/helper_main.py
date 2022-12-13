@@ -1,15 +1,15 @@
-import click
+import getpass
 import json
 import pickle
 import secrets
 
+import click
 import psycopg2
-import getpass
-
-from ..database import get_db, close_db
 from flask import g
 from flask.cli import with_appcontext
 from werkzeug.security import check_password_hash, generate_password_hash
+
+from ..database import close_db, get_db
 
 
 class bcolors:
@@ -50,7 +50,7 @@ with open("config.json") as config_file:
     config = json.load(config_file)
 
 
-def citenote_gen_hash(password: str) -> (str, str):
+def citenote_gen_hash(password: str) -> str:
     pepper = config["pepper"]
     peppered_password = password + pepper
     return generate_password_hash(peppered_password)

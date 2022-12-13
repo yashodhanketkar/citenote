@@ -1,14 +1,27 @@
 from flask import Flask
-from .util import set_config as config
+
 from .routes import home, users
+from .util import set_config as config
 from .util.helper import create_admin, init_db
 from .util.logger import logger_citenote
+
+
+def error_handler(err):
+    status, message = str(err)[:3], str(err)[4:]
+    return {
+        "status": status,
+        "message": message,
+    }, status
 
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
     app.after_request(logger_citenote)
+
+    app.register_error_handler(401, error_handler)
+    app.register_error_handler(404, error_handler)
+
     app.cli.add_command(init_db)
     app.cli.add_command(create_admin)
 
