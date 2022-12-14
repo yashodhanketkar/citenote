@@ -5,6 +5,8 @@ Provides operational functions to the users blueprint.
 
 import functools
 import psycopg2
+import psycopg2.errors as pgerr
+
 from typing import Callable, Tuple
 from flask import g, request, session
 
@@ -56,16 +58,17 @@ def get_role() -> str:
 
     role = request.args.get("role")
 
-    if role in get_citenote_data("allowed_roles"):
-        return role
+    if role:
+        if role == "admin":
+            raise CitenoteError.RoleError
 
-    if role == "admin":
-        raise CitenoteError.RoleError
+        if role in get_citenote_data("allowed_roles"):
+            return role
 
     return "guest"
 
 
-def users_operations(ufunc: Callable) -> Tuple[dict, int]:
+def users_operations(ufunc: Callable) -> Callable:
     """User operations handler for user routes
 
     This function provided output view to the user routes.
@@ -146,17 +149,21 @@ def users_login() -> bool:
         role = cursor.fetchone()[0]
         cursor.close()
 
+        session["username"] = username
+        session["role"] = role
+        print(f"{username = } logged in session")
+
     except CitenoteError.UsernameInSession as err:
         errors += 1
-        bcolors.print_warning(err.message, err)
+        bcolors.print_warning(err.message, err.error)
 
     except CitenoteError.PasswordError as err:
         errors += 1
-        bcolors.print_warning(err.message, err)
+        bcolors.print_warning(err.message, err.error)
 
     except CitenoteError.UsernameError as err:
         errors += 1
-        bcolors.print_warning(err.message, err)
+        bcolors.print_warning(err.message, err.error)
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
@@ -166,9 +173,6 @@ def users_login() -> bool:
         if errors:
             return False
 
-        session["username"] = username
-        session["role"] = role
-        print(f"{username = } logged in session")
         return True
 
 
@@ -213,12 +217,13 @@ def users_register() -> bool:
 
         g.db.commit()
         cursor.close()
+        print(f"{username = } registered in database")
 
     except CitenoteError.RoleError as err:
         errors += 1
-        bcolors.print_warning(err.message, err)
+        bcolors.print_warning(err.message, err.error)
 
-    except psycopg2.errors.UniqueViolation:
+    except pgerr.UniqueViolation:
         errors += 1
         bcolors.print_warning("Username already exists", "UniqueViolation")
 
@@ -230,7 +235,6 @@ def users_register() -> bool:
         if errors:
             return False
 
-        print(f"{username = } registered in database")
         return True
 
 
@@ -283,14 +287,15 @@ def users_delete() -> bool:
         cursor.execute(delete_user_query, (username,))
         g.db.commit()
         cursor.close()
+        print(f"{username = } deleted from database")
 
     except CitenoteError.PasswordError as err:
         errors += 1
-        bcolors.print_warning(err.message, err)
+        bcolors.print_warning(err.message, err.error)
 
     except CitenoteError.UsernameError as err:
         errors += 1
-        bcolors.print_warning(err.message, err)
+        bcolors.print_warning(err.message, err.error)
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
@@ -301,7 +306,6 @@ def users_delete() -> bool:
             return False
 
         session.clear()
-        print(f"{username = } deleted from database")
         return True
 
 
@@ -326,11 +330,12 @@ def users_logout() -> bool:
             raise CitenoteError.UsernameNotInSession
 
         username = session["username"]
+        print(f"{username = } logged out from session")
         session.clear()
 
     except CitenoteError.UsernameNotInSession as err:
         errors += 1
-        bcolors.print_warning(err.message, err)
+        bcolors.print_warning(err.message, "UsernameNotInSession")
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
@@ -340,7 +345,6 @@ def users_logout() -> bool:
         if errors:
             return False
 
-        print(f"{username = } logged out from session")
         return True
 
 

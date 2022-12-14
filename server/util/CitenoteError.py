@@ -1,9 +1,10 @@
 class CitenoteException(BaseException):
     """Common base class for all non-exit citenote exceptions."""
 
-    def __init__(self, error, message):
+    def __init__(self, error, message) -> None:
+        super().__init__()
+        self.error = error
         self.message = message
-        super().__init__(error)
 
 
 class UsernameError(CitenoteException):
@@ -39,3 +40,15 @@ class UsernameInSession(CitenoteException):
 
     def __init__(self):
         super().__init__("UsernameInSession", "Username is present in session")
+
+
+if __name__ == "__main__":
+    try:
+        raise UsernameInSession
+
+    except UsernameInSession as err:
+        print(err.message, err.error)
+        print(err)
+
+    except Exception as err:
+        print(err)
