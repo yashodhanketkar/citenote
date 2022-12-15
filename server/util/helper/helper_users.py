@@ -4,14 +4,15 @@ Provides operational functions to the users blueprint.
 """
 
 import functools
+from typing import Callable, Tuple
+
 import psycopg2
 import psycopg2.errors as pgerr
-
-from typing import Callable, Tuple
-from flask import g, request, session
+from flask import request, session
 
 from server.util import CitenoteError
 
+from ...models.users import User, db
 from .helper_main import bcolors, citenote_check_hash, citenote_gen_hash, get_citenote_data
 
 
@@ -106,9 +107,10 @@ def users_login() -> bool:
     password.
 
     Variables:
+        errors (int): Tracks number of errors
         username (str): username provided by user.
         password (str): password provided by user.
-        errors (int): Tracks number of errors
+        user (User): User class
 
     Returns:
         (bool): Returns true if no error occurs during the operation otherwise returns false.
@@ -129,28 +131,15 @@ def users_login() -> bool:
         username = validate_fields("username")
         password = validate_fields("password")
 
-        get_user_query = get_citenote_data("get_user_query")
-        get_password_hash_query = get_citenote_data("get_password_hash_query")
-
-        cursor = g.db.cursor()
-        cursor.execute(get_user_query, (username,))
-
-        if not cursor.fetchone():
+        user = User.query.filter_by(username=username).first()
+        if not user:
             raise CitenoteError.UsernameError
 
-        cursor.execute(get_password_hash_query, (username,))
-        pwhash = cursor.fetchone()[0]
-        _check = citenote_check_hash(password, pwhash)
-
-        if not _check:
+        if not citenote_check_hash(password, user.password):
             raise CitenoteError.PasswordError
 
-        cursor.execute("select role from users where username= %s", (username,))
-        role = cursor.fetchone()[0]
-        cursor.close()
-
-        session["username"] = username
-        session["role"] = role
+        session["username"] = user.username
+        session["role"] = user.role
         print(f"{username = } logged in session")
 
     except CitenoteError.UsernameInSession as err:
@@ -187,10 +176,11 @@ def users_register() -> bool:
     Function stores id, username, encrypted password and role into the database.
 
     Variables:
+        errors (int): Tracks number of errors
         username (str): username provided by user.
         password (str): password provided by user.
         role (str): role provided by user.
-        errors (int): Tracks number of errors
+        user (User): User class
 
 
     Returns:
@@ -209,14 +199,13 @@ def users_register() -> bool:
         password = validate_fields("password")
         role = get_role()
 
-        create_user_query = get_citenote_data("create_user_query")
-        passwordhash = citenote_gen_hash(password)
+        if User.query.filter_by(username=username).first():
+            raise pgerr.UniqueViolation
 
-        cursor = g.db.cursor()
-        cursor.execute(create_user_query, (username, passwordhash, role))
+        user = User(username, citenote_gen_hash(password), role)
+        db.session.add(user)
+        db.session.commit()
 
-        g.db.commit()
-        cursor.close()
         print(f"{username = } registered in database")
 
     except CitenoteError.RoleError as err:
@@ -249,9 +238,10 @@ def users_delete() -> bool:
     password. If no error occurs the user is delete from the database.
 
     Variables:
+        errors (int): Tracks number of errors
         username (str): username provided by user.
         password (str): password provided by user.
-        errors (int): Tracks number of errors
+        user (User): User class
 
     Returns:
         (bool): Returns true if no error occurs during the operation otherwise returns false.
@@ -267,26 +257,17 @@ def users_delete() -> bool:
         username = validate_fields("username")
         password = validate_fields("password")
 
-        get_user_query = get_citenote_data("get_user_query")
-        get_password_hash_query = get_citenote_data("get_password_hash_query")
-        delete_user_query = get_citenote_data("delete_user_query")
+        user = User.query.filter_by(username=username).first()
 
-        cursor = g.db.cursor()
-        cursor.execute(get_user_query, (username,))
-
-        if not cursor.fetchone():
+        if not user:
             raise CitenoteError.UsernameError
 
-        cursor.execute(get_password_hash_query, (username,))
-        pwhash = cursor.fetchone()[0]
-        _check = citenote_check_hash(password, pwhash)
-
-        if not _check:
+        if not citenote_check_hash(password, user.password):
             raise CitenoteError.PasswordError
 
-        cursor.execute(delete_user_query, (username,))
-        g.db.commit()
-        cursor.close()
+        db.session.delete(user)
+        db.session.commit()
+
         print(f"{username = } deleted from database")
 
     except CitenoteError.PasswordError as err:
@@ -299,7 +280,7 @@ def users_delete() -> bool:
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
-        print("Login failed ", err)
+        bcolors.print_warning(f"Removal failed {err}", "Unknown error")
 
     finally:
         if errors:

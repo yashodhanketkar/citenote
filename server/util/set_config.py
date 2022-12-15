@@ -8,6 +8,8 @@ from pathlib import Path
 
 from flask import current_app
 
+from .db import get_uri
+
 
 def configure():
     """Make configuration for the flask app"""
@@ -49,6 +51,7 @@ def configure():
 
         make_instance_folder()
         make_config_file()
-        current_app.config.from_pyfile(_config_file, silent=True)
+        current_app.config.from_pyfile(str(_config_file), silent=True)
+        current_app.config["SQLALCHEMY_DATABASE_URI"] = get_uri()
 
     __main__()

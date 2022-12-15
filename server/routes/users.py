@@ -1,25 +1,20 @@
-from flask import Blueprint, g
+from flask import Blueprint
 
-
-from ..util.helper import connect_db
-from ..util.helper.helper_users import users_delete, users_login, users_logout, users_register, users_operations
-
+from ..models.users import User, db
+from ..util.helper.helper_users import (users_delete, users_login,
+                                        users_logout, users_operations,
+                                        users_register)
 
 _users = Blueprint("users", __name__, url_prefix="/users")
 
-connect_db(_users)
+# connect_db(_users)
 
 
-@_users.route("/users")
-def get_user():
-    cursor = g.db.cursor()
-    add_user_query = """
-    SELECT * FROM users
-    """
-    cursor.execute(add_user_query)
-    users = cursor.fetchall()
-    cursor.close()
-    return {"/": "Get users", "users": users}, 200
+@_users.route("/get/<string:username>")
+def get_user(username):
+    print(username)
+    user = db.one_or_404(db.select(User).filter_by(username=username), description=f"No user named '{username}'.")
+    return {"/": "Get users", "users": user.username}, 200
 
 
 @_users.route("/login")

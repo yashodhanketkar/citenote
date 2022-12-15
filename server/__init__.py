@@ -1,20 +1,26 @@
+from typing import Tuple
+
 from flask import Flask
 
 from .routes import home, users
 from .util import set_config as config
+
+# from .models.users import db as user_db
+from .util.db import init_dbs
 from .util.helper import create_admin, init_db
 from .util.logger import logger_citenote
 
 
-def error_handler(err):
+def error_handler(err: int) -> Tuple[dict, int]:
     status, message = str(err)[:3], str(err)[4:]
+    status = int(status)
     return {
         "status": status,
         "message": message,
     }, status
 
 
-def create_app():
+def create_app() -> Flask:
     app = Flask(__name__, instance_relative_config=True)
 
     app.after_request(logger_citenote)
@@ -27,6 +33,8 @@ def create_app():
 
     with app.app_context():
         config.configure()
+
+    init_dbs(app)
 
     @app.route("/")
     def root():
