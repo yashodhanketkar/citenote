@@ -1,3 +1,4 @@
+import configparser
 import getpass
 import json
 import pickle
@@ -5,11 +6,27 @@ import secrets
 
 import click
 import psycopg2
+import psycopg2.errors as pgerr
+
 from flask import g
 from flask.cli import with_appcontext
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from ...models.users import db as user_db, User
+from ...models.data_models import db as dtm_db, Paper, Manuscript, Citation
 from ..database import close_db, get_db
+
+
+def get_config(key):
+    config = configparser.ConfigParser()
+    config.read("setup.cfg")
+    return config.get("metadata", key)
+
+
+def get_version():
+    with open("VERSION", "r") as version_file:
+        version = version_file.read()
+    return version
 
 
 class bcolors:
@@ -35,15 +52,32 @@ class bcolors:
 def get_citenote_data(query):
     with open(r"server/.citenote", "rb") as data_file:
         _val = pickle.load(data_file)[query]
+
     return _val
 
 
 def validate_superuser(user):
     if user == config["pg_user"]:
-        password = getpass.getpass()
+        password = getpass.getpass("Please enter database admin password: ")
+
         if password == config["pg_password"]:
             return True
+
     return False
+
+
+def get_password():
+    _password = getpass.getpass("Enter new password (admin): ")
+    _password_cnf = getpass.getpass("Confirm password: ")
+
+    if _password != _password_cnf:
+        print("Passwords do not match. Try again\n")
+        return get_password()
+
+    if _password == "":
+        return "admin"
+
+    return _password
 
 
 with open("config.json") as config_file:
@@ -53,12 +87,14 @@ with open("config.json") as config_file:
 def citenote_gen_hash(password: str) -> str:
     pepper = config["pepper"]
     peppered_password = password + pepper
+
     return generate_password_hash(peppered_password)
 
 
 def citenote_check_hash(password: str, hash: str) -> bool:
     pepper = config["pepper"]
     peppered_password = password + pepper
+
     return check_password_hash(hash, peppered_password)
 
 
@@ -78,13 +114,9 @@ def connect_db(bp):
 @click.option("-u", "--user")
 @with_appcontext
 def init_db(force, user):
-
     try:
         if not validate_superuser(user):
-            raise psycopg2.errors.InvalidAuthorizationSpecification
-
-        get_db()
-        cursor = g.db.cursor()
+            raise pgerr.InvalidAuthorizationSpecification
 
         if force:
             captcha = secrets.token_hex(3)
@@ -94,36 +126,30 @@ def init_db(force, user):
                 raise Exception("Invalid captcha")
 
             print("Captcha verified")
-
-            with open(r"server/models/citenote_clean.sql", "r") as query_file:
-                cursor.execute(query_file.read())
-
+            # User.__table__.drop(user_db.engine)
+            Paper.__table__.drop(dtm_db.engine)
+            Manuscript.__table__.drop(dtm_db.engine)
+            Citation.__table__.drop(dtm_db.engine)
             print("Force initiated database")
 
         else:
             print("Initiated database")
 
-        with open(r"server/models/citenote.sql", "r") as query_file:
-            cursor.execute(query_file.read())
+        user_db.create_all()
+        dtm_db.create_all()
 
-        g.db.commit()
         bcolors.print_success("Database initiated.")
 
-    except psycopg2.errors.InvalidAuthorizationSpecification:
+    except pgerr.InvalidAuthorizationSpecification:
         bcolors.print_warning("Authentication failed", "InvalidAuthorizationSpecification")
 
-    except psycopg2.errors.DuplicateTable:
+    except pgerr.DuplicateTable:
         message = "Database is already initiated."
         error = "DuplicateTable"
         bcolors.print_warning(message, error)
 
     except (Exception, psycopg2.Error) as err:
-        bcolors.print_warning("Some error occurred during database creation.", err)
-
-    finally:
-        if "db" in g:
-            cursor.close()
-            close_db()
+        bcolors.print_warning("Some error occurred during database creation.", str(err))
 
 
 @click.command("create-admin")
@@ -132,29 +158,22 @@ def init_db(force, user):
 def create_admin(user):
     try:
         if not validate_superuser(user):
-            raise psycopg2.errors.InvalidAuthorizationSpecification
-        get_db()
-        create_admin_query = """
-        insert into users (id, username, password, role)
-        Values (%s, %s, %s, %s);
-        """
-        password = citenote_gen_hash("admin")
-        admin_default = (9999, "admin", password, "admin")
-        cursor = g.db.cursor()
-        cursor.execute(create_admin_query, admin_default)
-        g.db.commit()
+            raise pgerr.InvalidAuthorizationSpecification
+
+        print("Creating 'admin' account.")
+        password = citenote_gen_hash(get_password())
+        admin = User("admin", password, "admin")
+        admin.id = 9999
+
+        user_db.session.add(admin)
+        user_db.session.commit()
         bcolors.print_success("User admin created!!")
 
-    except psycopg2.errors.InvalidAuthorizationSpecification:
+    except pgerr.InvalidAuthorizationSpecification:
         bcolors.print_warning("Authentication failed", "InvalidAuthorizationSpecification")
 
-    except psycopg2.errors.UniqueViolation:
+    except pgerr.UniqueViolation:
         bcolors.print_warning("User admin already exists", "UniqueViolation")
 
     except (Exception, psycopg2.Error) as err:
-        bcolors.print_warning("Some error occurred during admin creation.", err)
-
-    finally:
-        if "db" in g:
-            cursor.close()
-            close_db()
+        bcolors.print_warning("Some error occurred during admin creation.", str(err))

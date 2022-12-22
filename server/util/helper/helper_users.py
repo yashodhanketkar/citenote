@@ -90,8 +90,8 @@ def users_operations(ufunc: Callable) -> Callable:
     def wrapper() -> Tuple[dict, int]:
         _check, name = ufunc()
         if _check():
-            return {"/": f"{name} successful"}, 200
-        return {"/": f"{name} unsuccessful"}, 400
+            return {"check": f"{name} successful"}, 200
+        return {"check": f"{name} unsuccessful"}, 400
 
     return wrapper
 
