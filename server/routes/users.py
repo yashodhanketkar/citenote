@@ -1,17 +1,10 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
-from ..models.users import User, db
 from ..util.helper.helper_users import users_delete, users_login, users_logout, users_operations, users_register
+from ..util.helper.helper_users import get_user_by_username, update_user_by_username
 
 
 _users = Blueprint("users", __name__, url_prefix="/users")
-
-
-@_users.route("/get/<string:username>")
-def get_user(username):
-    print(username)
-    user = db.one_or_404(db.select(User).filter_by(username=username), description=f"No user named '{username}'.")
-    return {"id": user.id, "username": user.username, "role": user.role}, 200
 
 
 @_users.route("/login")
@@ -38,6 +31,16 @@ def logout():
     return users_logout, "logout"
 
 
-@_users.route("/test")
-def testing_func():
+@_users.route("/<string:username>", methods=("GET", "PATCH"))
+def users(username):
+    match request.method:
+        case "GET":
+            get_user_by_username(username)
+
+        case "PATCH":
+            update_user_by_username(username)
+
+        case _:
+            return {}, 405
+
     return {}, 200

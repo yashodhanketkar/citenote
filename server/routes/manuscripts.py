@@ -13,7 +13,7 @@ def manuscripts_about():
     }
 
 
-@_manuscripts.route("/", methods=("GET", "POST", "PATCH", "PUT"))
+@_manuscripts.route("/", methods=("GET", "POST", "PATCH", "PUT", "DELETE"))
 def manuscript_basic():
     match request.method:
         case "GET":

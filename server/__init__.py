@@ -2,7 +2,7 @@ from typing import Tuple
 
 from flask import Flask
 
-from .routes import home, users
+from .routes import home, papers, users, manuscripts
 from .util import set_config as config
 
 # from .models.users import db as user_db
