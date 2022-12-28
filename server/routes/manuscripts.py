@@ -23,7 +23,7 @@ def manuscript_basic():
         case "PATCH":
             return update()
         case "PUT":
-            return update()
+            return update(replace=True)
         case "DELETE":
             return delete()
         case _:

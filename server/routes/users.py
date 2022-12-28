@@ -31,7 +31,7 @@ def logout():
     return users_logout, "logout"
 
 
-@_users.route("/<string:username>", methods=("GET", "PATCH"))
+@_users.route("/user/<string:username>", methods=("GET", "PATCH"))
 def users(username):
     match request.method:
         case "GET":
@@ -44,3 +44,7 @@ def users(username):
             return {}, 405
 
     return {}, 200
+
+
+if __name__ == "__main__":
+    ...

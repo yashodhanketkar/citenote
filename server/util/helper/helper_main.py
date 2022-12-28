@@ -177,3 +177,14 @@ def create_admin(user):
 
     except (Exception, psycopg2.Error) as err:
         bcolors.print_warning("Some error occurred during admin creation.", str(err))
+
+
+def get_form_data(field, required=False, type="TEXT"):
+    try:
+        return request.form[field]
+
+    except KeyError:
+        if required:
+            raise ValueError
+
+        return ""

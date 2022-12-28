@@ -42,5 +42,6 @@ def create_app() -> Flask:
 
     app.register_blueprint(home._home)
     app.register_blueprint(users._users)
+    app.register_blueprint(manuscripts._manuscripts)
 
     return app

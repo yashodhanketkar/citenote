@@ -1,3 +1,6 @@
+from .helper.helper_main import bcolors
+
+
 class CitenoteException(BaseException):
     """Common base class for all non-exit citenote exceptions."""
 
@@ -5,6 +8,19 @@ class CitenoteException(BaseException):
         super().__init__()
         self.error = error
         self.message = message
+
+    def __repr__(self) -> str:
+        return f"CitenoteException(error: {self.error}, message: {self.message})"
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def print_error(self):
+        """Prints out warning message with help of bcolors class"""
+        bcolors.print_warning(
+            self.message,
+            self.error + "()",
+        )
 
 
 class UsernameError(CitenoteException):
