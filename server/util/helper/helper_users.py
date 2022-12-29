@@ -4,16 +4,15 @@ Provides operational functions to the users blueprint.
 """
 
 import functools
-from typing import Callable, Tuple
+from typing import Callable, Literal, Tuple
 
 import psycopg2
 import psycopg2.errors as pgerr
 from flask import request, session
 
-from server.util import CitenoteError
-
 from ...models.users import User, db
-from .helper_main import bcolors, citenote_check_hash, citenote_gen_hash, get_citenote_data
+from ..CitenoteError import PasswordError, RoleError, UsernameError, UsernameInSession, UsernameNotInSession
+from .helper_main import bcolors, citenote_check_hash, citenote_gen_hash, get_citenote_data, get_form_data
 
 
 def validate_fields(field: str) -> str:
@@ -43,6 +42,28 @@ def validate_fields(field: str) -> str:
     return str(_val)
 
 
+def role_validator(role: str | None) -> str:
+    """Validates provided role
+
+    Args:
+        role (str): Provided role
+
+    Returns:
+        role (str): Role if it's valid or guest.
+
+    Raises:
+        RoleError: Raise if "admin" role is requested.
+    """
+    if role:
+        if role == "admin":
+            raise RoleError
+
+        if role in get_citenote_data("allowed_roles"):
+            return role
+
+    return "guest"
+
+
 def get_role() -> str:
     """Provides the role for user.
 
@@ -58,15 +79,7 @@ def get_role() -> str:
     """
 
     role = request.args.get("role")
-
-    if role:
-        if role == "admin":
-            raise CitenoteError.RoleError
-
-        if role in get_citenote_data("allowed_roles"):
-            return role
-
-    return "guest"
+    return role_validator(role)
 
 
 def users_operations(ufunc: Callable) -> Callable:
@@ -126,37 +139,29 @@ def users_login() -> bool:
 
     try:
         if "username" in session:
-            raise CitenoteError.UsernameInSession
+            raise UsernameInSession
 
         username = validate_fields("username")
         password = validate_fields("password")
 
         user = User.query.filter_by(username=username).first()
         if not user:
-            raise CitenoteError.UsernameError
+            raise UsernameError
 
         if not citenote_check_hash(password, user.password):
-            raise CitenoteError.PasswordError
+            raise PasswordError
 
         session["username"] = user.username
         session["role"] = user.role
         print(f"{username = } logged in session")
 
-    except CitenoteError.UsernameInSession as err:
+    except (UsernameInSession, UsernameError, PasswordError) as err:
         errors += 1
-        bcolors.print_warning(err.message, err.error)
-
-    except CitenoteError.PasswordError as err:
-        errors += 1
-        bcolors.print_warning(err.message, err.error)
-
-    except CitenoteError.UsernameError as err:
-        errors += 1
-        bcolors.print_warning(err.message, err.error)
+        err.print_error()
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
-        print("Login failed ", err)
+        bcolors.print_warning("Login failed", repr(err))
 
     finally:
         if errors:
@@ -208,17 +213,17 @@ def users_register() -> bool:
 
         print(f"{username = } registered in database")
 
-    except CitenoteError.RoleError as err:
+    except RoleError as err:
         errors += 1
-        bcolors.print_warning(err.message, err.error)
+        err.print_error()
 
-    except pgerr.UniqueViolation:
+    except pgerr.UniqueViolation as err:
         errors += 1
-        bcolors.print_warning("Username already exists", "UniqueViolation")
+        bcolors.print_warning("Username already exists", repr(err))
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
-        bcolors.print_warning(f"Registration failed {err}", "Unknown error")
+        bcolors.print_warning("Registration failed", repr(err))
 
     finally:
         if errors:
@@ -260,27 +265,23 @@ def users_delete() -> bool:
         user = User.query.filter_by(username=username).first()
 
         if not user:
-            raise CitenoteError.UsernameError
+            raise UsernameError
 
         if not citenote_check_hash(password, user.password):
-            raise CitenoteError.PasswordError
+            raise PasswordError
 
         db.session.delete(user)
         db.session.commit()
 
         print(f"{username = } deleted from database")
 
-    except CitenoteError.PasswordError as err:
+    except (PasswordError, UsernameError) as err:
         errors += 1
-        bcolors.print_warning(err.message, err.error)
-
-    except CitenoteError.UsernameError as err:
-        errors += 1
-        bcolors.print_warning(err.message, err.error)
+        err.print_error()
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
-        bcolors.print_warning(f"Removal failed {err}", "Unknown error")
+        bcolors.print_warning("Removal failed", repr(err))
 
     finally:
         if errors:
@@ -308,25 +309,115 @@ def users_logout() -> bool:
 
     try:
         if "username" not in session:
-            raise CitenoteError.UsernameNotInSession
+            raise UsernameNotInSession
 
         username = session["username"]
         print(f"{username = } logged out from session")
         session.clear()
 
-    except CitenoteError.UsernameNotInSession as err:
+    except UsernameNotInSession as err:
         errors += 1
-        bcolors.print_warning(err.message, "UsernameNotInSession")
+        err.print_error()
 
     except (Exception, psycopg2.Error) as err:
         errors += 1
-        print("Logout failed ", err)
+        bcolors.print_warning("Logout failed ", repr(err))
 
     finally:
         if errors:
             return False
 
         return True
+
+
+def get_user_by_username(username: str) -> User | Literal[False]:
+    """Returns user
+
+    Args:
+        username (str): Username query
+
+    Variables:
+        user (User): Stores User object
+
+    Returns:
+        user (User): User object
+        Literal[False]: If error occures
+
+    Raise:
+        UsernameError: Raises if username is not present in database
+
+    """
+    try:
+        user: User = User.query.filter_by(username=username).first()
+        print(
+            {
+                "id": user.id,
+                "name": user.username,
+                "role": user.role,
+            }
+        )
+
+        if not user:
+            raise UsernameError
+
+        return user
+
+    except UsernameError as err:
+        err.print_error()
+        return False
+
+    except (Exception, psycopg2.Error) as err:
+        bcolors.print_warning("Get user by username operation failed ", repr(err))
+        return False
+
+
+def update_user_by_username(username: str) -> bool:
+    """Updates user
+
+    Args:
+        username (str): Username query
+
+    Variables:
+        user (User): Stores User object
+
+    Returns:
+        _check (bool): Returns whetere user is updated
+
+    Raise:
+        UsernameError: Raises if username is not present in database
+        PasswordError: Raises if password does not matches database password
+
+    """
+
+    _check = False
+
+    try:
+        user: User = User.query.filter_by(username=username).first()
+        password = get_form_data("password")
+        new_role = get_form_data("new_role", required=True)
+        role_validator(new_role)
+
+        if not user:
+            raise UsernameError
+
+        if not citenote_check_hash(password, user.password):
+            raise PasswordError
+
+        user.role = new_role
+        db.session.commit()
+
+        _check = True
+
+    except (UsernameError, PasswordError) as err:
+        err.print_error()
+        _check = False
+
+    except (Exception, psycopg2.Error) as err:
+        print("Get user by username operation failed ", err)
+        _check = False
+
+    finally:
+        return _check
 
 
 if __name__ == "__main__":
