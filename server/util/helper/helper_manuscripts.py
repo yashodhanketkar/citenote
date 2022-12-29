@@ -1,55 +1,28 @@
-import functools
-
-from typing import Callable
-
 from ...models.data_models import Manuscript, db
-from .helper_main import get_form_data, bcolors
-from .helper_models import replace_check
-from ..CitenoteError import CitenoteException
+from ..CitenoteError import ManuscriptFoundError, ManuscriptNotFoundError
+from .helper_main import get_form_data
+from .helper_models import model_handler, replace_check
 
 
-class ManuscriptFoundError(CitenoteException):
-    """Manuscript already exist."""
-
-    def __init__(self):
-        super().__init__("ManuscriptFoundError", "Manuscript already exists in database.")
-
-
-class ManuscriptNotFoundError(CitenoteException):
-    """Manuscript does not exist."""
-
-    def __init__(self):
-        super().__init__("ManuscriptNotFoundError", "Manuscript not found in database.")
-
-
-def manuscript_handler(mfunc: Callable) -> Callable:
-    """Error and output handler"""
-
-    @functools.wraps(mfunc)
-    def wrapper(**kwargs):
-        try:
-            response = mfunc(**kwargs)
-            if response:
-                return response
-            return {}, 200
-
-        except (ManuscriptFoundError, ManuscriptNotFoundError) as err:
-            err.print_error()
-            return {}, 500
-
-        except ValueError as err:
-            bcolors.print_warning("Wrong input type", repr(err))
-            return {}, 500
-
-        except Exception as err:
-            bcolors.print_warning("Some error", repr(err))
-            return {}, 500
-
-    return wrapper
-
-
-@manuscript_handler
+@model_handler
 def get():
+    """Handles manuscript.get request
+
+    Get manuscript object from database.
+
+    Variables:
+        manuscript_name (str): Name of the manuscript.
+        manuscript (Manuscript): Manuscript object if present in dataset.
+        val (dict): Response dictionary
+
+    Returns:
+        (dict, int): Returns the response to the user.
+
+    Raises:
+        ManuscriptNotFoundError: Raises manuscript is not present in database.
+
+    """
+
     manuscript_name = get_form_data("manuscript_name")
     manuscript: Manuscript = Manuscript.query.filter_by(name=manuscript_name).first()
 
@@ -65,8 +38,23 @@ def get():
     return val, 200
 
 
-@manuscript_handler
+@model_handler
 def post():
+    """Handles manuscript.post request
+
+    Variables:
+        manuscript_name (str): Name of the manuscript.
+        manuscript_abstract (str): Abstract of the manuscript.
+        manuscript (Manuscript): Manuscript object if present in dataset.
+
+    Returns:
+        (dict, int): Returns the response to the user.
+
+    Raises:
+        ManuscriptFoundError: Raises if manuscript already present in database.
+
+    """
+
     manuscript_name = get_form_data("manuscript_name")
     manuscript_abstract = get_form_data("manuscript_abstract")
 
@@ -80,8 +68,27 @@ def post():
     return {}, 201
 
 
-@manuscript_handler
+@model_handler
 def update(replace=False):
+    """Handles manuscript.update request
+
+    Updates or replaces the value in database.
+
+    Args:
+        replace (bool): True if request method is put else defaults to false.
+
+    Variables:
+        manuscript_name (str): Name of manuscript
+        updated_id (str): New id for manuscript if provided
+        updated_name (str): New name for manuscript if provided
+        updated_absract (str): New abstract for manuscript if provided
+        manuscript (Manuscript): Manuscript object if present in database
+
+    Raises:
+        ManuscriptNotFoundError: Raises if manuscript is not present in database.
+
+    """
+
     manuscript_name = get_form_data("manuscript_name", True)
     updated_id = get_form_data("updated_id")
     updated_name = get_form_data("updated_name")
@@ -109,8 +116,21 @@ def update(replace=False):
     db.session.commit()
 
 
-@manuscript_handler
+@model_handler
 def delete():
+    """Handles manuscript.delete request
+
+    Deletes manuscript object from database.
+
+    Variables:
+        manuscript_name (str): Name of manuscript to be deleted.
+        manuscript (Manuscript): Manuscript object to be deleted.
+
+    Raises:
+        ManuscriptNotFoundError: Raise if manuscript is not present in database.
+
+    """
+
     manuscript_name = get_form_data("manuscript_name", True)
     mansucript = Manuscript.query.filter_by(name=manuscript_name).first()
 

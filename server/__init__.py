@@ -2,10 +2,8 @@ from typing import Tuple
 
 from flask import Flask
 
-from .routes import home, papers, users, manuscripts
+from .routes import home, manuscripts, papers, users
 from .util import set_config as config
-
-# from .models.users import db as user_db
 from .util.db import init_dbs
 from .util.helper import create_admin, init_db
 from .util.logger import logger_citenote
@@ -36,12 +34,9 @@ def create_app() -> Flask:
 
     init_dbs(app)
 
-    @app.route("/")
-    def root():
-        return {"/root": app.root_path}, 200
-
     app.register_blueprint(home._home)
     app.register_blueprint(users._users)
     app.register_blueprint(manuscripts._manuscripts)
+    app.register_blueprint(papers._papers)
 
     return app
