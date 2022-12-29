@@ -23,6 +23,13 @@ class CitenoteException(BaseException):
         )
 
 
+class SameValueError(CitenoteException):
+    """Similar value is provided"""
+
+    def __init__(self):
+        super().__init__("SameValueError", "Similar value is provided")
+
+
 class UsernameError(CitenoteException):
     """Incorrect username"""
 
@@ -58,13 +65,33 @@ class UsernameInSession(CitenoteException):
         super().__init__("UsernameInSession", "Username is present in session")
 
 
+class PaperFoundError(CitenoteException):
+    """Paper already exist."""
+
+    def __init__(self) -> None:
+        super().__init__("PaperFoundError", "Paper already exist in database.")
+
+
+class PaperNotFoundError(CitenoteException):
+    """Paper already exist."""
+
+    def __init__(self) -> None:
+        super().__init__("PaperNotFoundError", "Paper does not exist in database.")
+
+
+class ManuscriptFoundError(CitenoteException):
+    """Manuscript already exist."""
+
+    def __init__(self):
+        super().__init__("ManuscriptFoundError", "Manuscript already exists in database.")
+
+
+class ManuscriptNotFoundError(CitenoteException):
+    """Manuscript does not exist."""
+
+    def __init__(self):
+        super().__init__("ManuscriptNotFoundError", "Manuscript not found in database.")
+
+
 if __name__ == "__main__":
-    try:
-        raise UsernameInSession
-
-    except UsernameInSession as err:
-        print(err.message, err.error)
-        print(err)
-
-    except Exception as err:
-        print(err)
+    raise SystemExit
