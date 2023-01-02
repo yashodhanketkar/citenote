@@ -5,6 +5,7 @@ import pickle
 import secrets
 
 import click
+from datetime import datetime
 import psycopg2
 import psycopg2.errors as pgerr
 from flask import g, request
@@ -365,6 +366,10 @@ def create_admin(user):
         password = citenote_gen_hash(get_password())
         admin = User("admin", password, "admin")
         admin.id = 9999
+        admin.date_joined = datetime.now()
+        admin.is_active = True
+        admin.is_staff = True
+        admin.is_superuser = True
 
         user_db.session.add(admin)
         user_db.session.commit()

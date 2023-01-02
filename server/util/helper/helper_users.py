@@ -6,6 +6,7 @@ Provides operational functions to the users blueprint.
 import functools
 from typing import Callable, Literal, Tuple
 
+from datetime import datetime
 import psycopg2
 import psycopg2.errors as pgerr
 from flask import request, session
@@ -121,6 +122,7 @@ def users_login() -> bool:
 
     Variables:
         errors (int): Tracks number of errors
+        request_time (datetime): Time of request at server.
         username (str): username provided by user.
         password (str): password provided by user.
         user (User): User class
@@ -136,6 +138,7 @@ def users_login() -> bool:
     """
 
     errors = 0
+    request_time = datetime.now()
 
     try:
         if "username" in session:
@@ -144,16 +147,19 @@ def users_login() -> bool:
         username = validate_fields("username")
         password = validate_fields("password")
 
-        user = User.query.filter_by(username=username).first()
+        user: User = User.query.filter_by(username=username).first()
         if not user:
             raise UsernameError
 
         if not citenote_check_hash(password, user.password):
             raise PasswordError
 
+        user.last_login = request_time
+        db.session.commit()
+
         session["username"] = user.username
         session["role"] = user.role
-        print(f"{username = } logged in session")
+        print(f"{username = } logged in session\n{request_time}")
 
     except (UsernameInSession, UsernameError, PasswordError) as err:
         errors += 1
@@ -182,11 +188,11 @@ def users_register() -> bool:
 
     Variables:
         errors (int): Tracks number of errors
+        request_time (datetime): Time of request at server.
         username (str): username provided by user.
         password (str): password provided by user.
         role (str): role provided by user.
         user (User): User class
-
 
     Returns:
         (bool): Returns true if no error occurs during the operation otherwise returns false.
@@ -198,6 +204,7 @@ def users_register() -> bool:
     """
 
     errors = 0
+    request_time = datetime.now()
 
     try:
         username = validate_fields("username")
@@ -208,6 +215,7 @@ def users_register() -> bool:
             raise pgerr.UniqueViolation
 
         user = User(username, citenote_gen_hash(password), role)
+        user.date_joined = request_time
         db.session.add(user)
         db.session.commit()
 

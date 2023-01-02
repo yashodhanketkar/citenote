@@ -10,7 +10,14 @@ class User(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String)
     password = db.Column(db.String)
+    last_login = db.Column(db.DateTime)
+    is_superuser = db.Column(db.Boolean)
+    is_staff = db.Column(db.Boolean)
+    is_active = db.Column(db.Boolean)
+    date_joined = db.Column(db.DateTime)
     role = db.Column(db.String)
+    first_name = db.Column(db.String)
+    last_name = db.Column(db.String)
 
     def __init__(self, username, password, role):
         self.username = username
