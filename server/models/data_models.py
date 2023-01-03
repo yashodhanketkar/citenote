@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import relationship
+
+# from sqlalchemy.orm import relationship
 
 
 db = SQLAlchemy()
@@ -30,7 +31,7 @@ class Paper(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
     abstract = db.Column(db.String)
-    bibtex = relationship("Citation", back_populates="papers", uselist=False)
+    bibtex = db.relationship("Citation", backref="papers", uselist=False)
 
     def __init__(self, name, abstract):
         self.name = name
@@ -67,8 +68,7 @@ class Citation(db.Model):  # type: ignore
     year = db.Column(db.String)
     paper_id = db.Column(db.Integer, db.ForeignKey("papers.id"))
 
-    paper = relationship("Paper", back_populates="citations")
-
-    def __init__(self, title, author):
+    def __init__(self, title, paper_id, **kwargs):
         self.title = title
-        self.author = author
+        self.paper_id = paper_id
+        self.__dict__.update(kwargs)

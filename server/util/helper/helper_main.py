@@ -12,7 +12,7 @@ from flask import g, request
 from flask.cli import with_appcontext
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ...models.data_models import Manuscript, Paper
+from ...models.data_models import Manuscript, Paper, Citation, manuscript_paper
 from ...models.data_models import db as dtm_db
 from ...models.users import User
 from ...models.users import db as user_db
@@ -311,9 +311,11 @@ def init_db(force, user):
                 raise Exception("Invalid captcha")
 
             print("Captcha verified")
-            User.__table__.drop(user_db.engine)
-            Paper.__table__.drop(dtm_db.engine)
+            manuscript_paper.drop(dtm_db.engine)
+            Citation.__table__.drop(dtm_db.engine)
             Manuscript.__table__.drop(dtm_db.engine)
+            Paper.__table__.drop(dtm_db.engine)
+            User.__table__.drop(user_db.engine)
             # Citation.__table__.drop(dtm_db.engine)
             print("Force initiated database")
 

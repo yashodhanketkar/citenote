@@ -1,0 +1,156 @@
+---
+article:
+  required:
+  - author
+  - journal
+  - year
+  optional:
+  - volume
+  - number
+  - pages
+  - month
+book:
+  required:
+  - author
+  - editor
+  - publisher
+  - year
+  optional:
+  - volume
+  - number
+  - series
+  - address
+  - month
+booklet:
+  required:
+  optional:
+  - author
+  - howpublished
+  - address
+  - month
+  - year
+conference:
+  required:
+  - author
+  - booktitle
+  - year
+  optional:
+  - editor
+  - volume
+  - number
+  - series
+  - pages
+  - address
+  - month
+  - organization
+  - publisher
+inproceedings:
+  required:
+  - author
+  - booktitle
+  - year
+  optional:
+  - editor
+  - volume
+  - number
+  - series
+  - pages
+  - address
+  - month
+  - organization
+  - publisher
+inbook:
+  required:
+  - author
+  - editor
+  - chapter
+  - pages
+  - publisher
+  - year
+  optional:
+  - volume
+  - number
+  - series
+  - type
+  - address
+  - edition
+  - month
+incollection:
+  required:
+  - author
+  - booktitle
+  - year
+  optional:
+  - editor
+  - volume
+  - number
+  - series
+  - type
+  - chapter
+  - pages
+  - address
+  - edition
+  - month
+manual:
+  required:
+  optional:
+  - author
+  - organization
+  - address
+  - edition
+  - month
+  - year
+mastersthesis:
+  required:
+  - author
+  - school
+  - year
+  optional:
+  - type
+  - address
+  - month
+misc:
+  required:
+  optional:
+  - author
+  - howpublished
+  - month
+  - year
+phdthesis:
+  required:
+  - author
+  - school
+  - year
+  optional:
+  - type
+  - address
+  - month
+proceedings:
+  required:
+  - year
+  optional:
+  - editor
+  - volume
+  - number
+  - series
+  - address
+  - month
+  - organization
+  - publisher
+techreport:
+  required:
+  - author
+  - title
+  - institution
+  - year
+  optional:
+  - type
+  - number
+  - address
+  - month
+unpublished:
+  required:
+  - author
+  optional:
+  - month
+  - year
