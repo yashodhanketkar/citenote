@@ -3,17 +3,18 @@ import getpass
 import json
 import pickle
 import secrets
+from datetime import datetime
 
 import click
-from datetime import datetime
 import psycopg2
 import psycopg2.errors as pgerr
 from flask import g, request
 from flask.cli import with_appcontext
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ...models.data_models import Manuscript, Paper, Citation, manuscript_paper
+from ...models.data_models import Citation, Manuscript, Paper
 from ...models.data_models import db as dtm_db
+from ...models.data_models import manuscript_paper
 from ...models.users import User
 from ...models.users import db as user_db
 from ..database import close_db, get_db
@@ -278,7 +279,14 @@ def connect_db(bp):
 
 
 @click.command("init-db")
-@click.option("-f", "--force", is_flag=True, show_default=True, default=False, help="Creates database.")
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Creates database.",
+)
 @click.option("-u", "--user")
 @with_appcontext
 def init_db(force, user):

@@ -1,6 +1,7 @@
 import functools
 from typing import Callable, Tuple
 
+from ...models.data_models import Manuscript, Paper, db
 from ..CitenoteError import (
     ManuscriptFoundError,
     ManuscriptNotFoundError,
@@ -8,10 +9,15 @@ from ..CitenoteError import (
     PaperNotFoundError,
     SameValueError,
 )
-from .helper_main import bcolors
+from .helper_main import bcolors, get_form_data
 
 
-def replace_check(replace: bool, updated_id: str = "", updated_name: str = "", updated_abstract: str = "") -> bool:
+def replace_check(
+    replace: bool,
+    updated_id: str = "",
+    updated_name: str = "",
+    updated_abstract: str = "",
+) -> bool:
     """Replace or udpate check
 
     Args:
@@ -24,6 +30,7 @@ def replace_check(replace: bool, updated_id: str = "", updated_name: str = "", u
         (bool): Returns true if correct values are provided.
 
     """
+
     if replace and updated_id:
         bcolors.print_message("Id is immutable in replace operation")
         return False
@@ -65,6 +72,7 @@ def model_handler(func: Callable) -> Callable:
             response (tuple): Tuple of response and status code if present else predefined responses
 
         """
+
         operation_name = func.__name__.upper()
         try:
             response = func(**kwargs)
@@ -129,3 +137,88 @@ def update_field(field: str | int, field_name: str, val: str | int):
 
     update_message(field_name, val)
     return val
+
+
+def model_formatter(object: Manuscript | Paper) -> dict:
+    """Formats manuscript object
+
+    Get manuscript object from functions and convert it into formatted dictionary
+
+    Args:
+        manuscripts (Manuscript): Manuscript object obtained from function
+
+    Returns:
+        val (dict): Formatted dictionary output of manuscripts object
+
+    """
+
+    val = {
+        "id": object.id,
+        "name": object.name,
+        "abstract": object.abstract,
+    }
+
+    return val
+
+
+def get_update_papers_data(manuscript_id: str):
+    """Returns manuscript and paper objects
+
+    Get manuscript and paper object from provided ids.
+
+    Args:
+        manuscript_id (str): ID of required manuscript
+
+    Variables:
+        paper_id (str): ID of required paper.
+
+    Returns:
+        manuscript (Manuscript): Manuscript object
+        paper (Paper): Paper object
+
+    Raises:
+        PaperNotFoundError: Raises if paper not found in database.
+
+    """
+
+    manuscript: Manuscript = Manuscript.query.filter_by(id=manuscript_id).first()
+    paper_id = get_form_data("paper_id")
+
+    if not paper_id:
+        raise ValueError("Paper ID not provided")
+
+    paper: Paper = Paper.query.filter_by(id=paper_id).first()
+
+    if not paper:
+        raise PaperNotFoundError
+
+    return manuscript, paper
+
+
+def get_paper_list(manuscript: Manuscript):
+    """Get list of papers associated with manuscript
+
+    Args:
+        manuscripts (Manuscript): Manuscript object
+
+    """
+
+    return [paper[0] for paper in db.session.execute(manuscript.papers).all()]
+
+
+def check_papers(manuscript: Manuscript, paper: Paper):
+    """Check if paper is already associated with manuscript
+
+    Args:
+        manuscripts (Manuscript): Manuscript object
+        paper (Paper): Paper object
+
+    Raise:
+        PaperFoundError: Raises if paper is associated with manuscript
+
+    """
+
+    papers = get_paper_list(manuscript)
+    paper_ids = [paper.id for paper in papers]
+    if paper.id in paper_ids:
+        raise PaperFoundError

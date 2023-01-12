@@ -4,16 +4,28 @@ Provides operational functions to the users blueprint.
 """
 
 import functools
+from datetime import datetime
 from typing import Callable, Literal, Tuple
 
-from datetime import datetime
 import psycopg2
 import psycopg2.errors as pgerr
 from flask import request, session
 
 from ...models.users import User, db
-from ..CitenoteError import PasswordError, RoleError, UsernameError, UsernameInSession, UsernameNotInSession
-from .helper_main import bcolors, citenote_check_hash, citenote_gen_hash, get_citenote_data, get_form_data
+from ..CitenoteError import (
+    PasswordError,
+    RoleError,
+    UsernameError,
+    UsernameInSession,
+    UsernameNotInSession,
+)
+from .helper_main import (
+    bcolors,
+    citenote_check_hash,
+    citenote_gen_hash,
+    get_citenote_data,
+    get_form_data,
+)
 
 
 def validate_fields(field: str) -> str:

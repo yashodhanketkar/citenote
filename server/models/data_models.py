@@ -1,7 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
 
-# from sqlalchemy.orm import relationship
-
 
 db = SQLAlchemy()
 
@@ -19,6 +17,7 @@ class Manuscript(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
     abstract = db.Column(db.String)
+    papers = db.relationship("Paper", secondary="manuscripts_papers", backref="manuscripts", lazy="dynamic")
 
     def __init__(self, name, abstract):
         self.name = name

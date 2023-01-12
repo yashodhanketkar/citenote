@@ -6,12 +6,11 @@ from ..util.helper.helper_papers import (
     post as post_basic,
     update as update_basic,
 )
-
 from ..util.helper.helper_citations import (
+    delete as delete_adv,
     get as get_adv,
     post as post_adv,
     update as update_adv,
-    delete as delete_adv,
 )
 
 
@@ -28,7 +27,7 @@ def about_papers():
 
 @_papers.route("/", methods=("GET", "POST", "PATCH", "PUT", "DELETE"))
 def papers_basic():
-    """Handles papers basic route"""
+    """Handles papers basic routes"""
     match request.method:
         case "GET":
             return get_basic()
@@ -46,6 +45,7 @@ def papers_basic():
 
 @_papers.route("/paper/<string:paper_id>", methods=("GET", "POST", "PATCH", "PUT", "DELETE"))
 def papers_advance(paper_id):
+    """Handles papers advance routes"""
     match request.method:
         case "GET":
             return get_adv(id=paper_id)

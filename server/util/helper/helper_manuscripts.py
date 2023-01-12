@@ -1,7 +1,14 @@
 from ...models.data_models import Manuscript, db
 from ..CitenoteError import ManuscriptFoundError, ManuscriptNotFoundError
 from .helper_main import get_form_data
-from .helper_models import model_handler, replace_check
+from .helper_models import (
+    check_papers,
+    get_paper_list,
+    get_update_papers_data,
+    model_formatter,
+    model_handler,
+    replace_check,
+)
 
 
 @model_handler
@@ -13,6 +20,8 @@ def get():
     Variables:
         manuscript_name (str): Name of the manuscript.
         manuscript (Manuscript): Manuscript object if present in dataset.
+        manuscript_list (list): List of the manuscript objects.
+        formatted_manuscript_list (list): List of formatted manuscript objects.
         val (dict): Response dictionary
 
     Returns:
@@ -24,16 +33,21 @@ def get():
     """
 
     manuscript_name = get_form_data("manuscript_name")
-    manuscript: Manuscript = Manuscript.query.filter_by(name=manuscript_name).first()
+    if manuscript_name:
+        manuscript: Manuscript = Manuscript.query.filter_by(name=manuscript_name).first()
+        if not manuscript:
+            raise ManuscriptNotFoundError
+        val = model_formatter(object=manuscript)
 
-    if not manuscript:
-        raise ManuscriptNotFoundError
+    else:
+        manuscript_list: list = Manuscript.query.all()
+        if not manuscript_list:
+            raise ManuscriptNotFoundError
+        formatted_manuscript_list = []
+        for manuscript in manuscript_list:
+            formatted_manuscript_list.append(model_formatter(object=manuscript))
 
-    val = {
-        "id": manuscript.id,
-        "name": manuscript.name,
-        "abstract": manuscript.abstract,
-    }
+        val = {"count": len(manuscript_list), "results": formatted_manuscript_list}
 
     return val, 200
 
@@ -138,6 +152,79 @@ def delete():
         raise ManuscriptNotFoundError
 
     db.session.delete(mansucript)
+    db.session.commit()
+
+
+@model_handler
+def get_paper(manuscript_id: str):
+    """Handles manuscript.get_paper request
+
+    Get list of associated papers.
+
+    Args:
+        manuscript_id (str): ID of manuscript
+    Variables:
+        manuscript (Manuscript): Manuscript object
+        papers (list): List of paper associated with manuscript
+        formatted_papers (list): List of formatted papers associated with manuscript
+
+    Returns:
+        (dict, int): Return the response to the user.
+
+    """
+
+    manuscript: Manuscript = Manuscript.query.filter_by(id=manuscript_id).first()
+    papers = get_paper_list(manuscript)
+    if not papers:
+        return {}, 200
+    formatted_papers = []
+    for paper in papers:
+        formatted_papers.append(model_formatter(paper))
+
+    val = {
+        "count": len(papers),
+        "results": formatted_papers,
+    }
+
+    return val, 200
+
+
+@model_handler
+def add_paper(manuscript_id: str):
+    """Handles manuscript.add_paper request
+
+    Add paper to association.
+
+    Args:
+        manuscript_id (str): ID of manuscript
+    Variables:
+        manuscript (Manuscript): Manuscript object
+        paper (Paper): paper object
+
+    """
+
+    manuscript, paper = get_update_papers_data(manuscript_id)
+    check_papers(manuscript, paper)
+    manuscript.papers.append(paper)
+    db.session.commit()
+
+
+@model_handler
+def remove_paper(manuscript_id: str):
+    """Handles manuscript.remove_paper request
+
+    Remove paper from association.
+
+    Args:
+        manuscript_id (str): ID of manuscript
+    Variables:
+        manuscript (Manuscript): Manuscript object
+        paper (Paper): paper object
+
+    """
+
+    manuscript, paper = get_update_papers_data(manuscript_id)
+    manuscript.papers.remove(paper)
     db.session.commit()
 
 

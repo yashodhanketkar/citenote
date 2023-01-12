@@ -1,6 +1,7 @@
 import json
-from ..models.users import db as user_db
+
 from ..models.data_models import db as dtm_db
+from ..models.users import db as user_db
 
 
 def get_uri():
